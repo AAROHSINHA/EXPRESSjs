@@ -12,6 +12,18 @@ router.get('/api/users'
   .notEmpty().withMessage('Must Not be empty')
   .isLength({min: 3, max: 10}).withMessage('Must be atlease 3 to 10 characters'),
    (request, response) => {
+    // the sessions will be same for all routes and request
+    // you will see that the / has same as /api/users
+    console.log(request.session);
+    console.log(request.session.id);
+    request.sessionStore.get(request.session.id, (err, sessionData) => {
+      if(err){
+        console.log(err);
+        throw err;
+      }
+      console.log(sessionData);
+    })
+
     /*
     The query function above just perform the task no matter what
     They dont throw any error. That error handling we need to do ourselves
