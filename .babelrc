@@ -1,0 +1,9 @@
+{
+    "presents":[
+        ["@babel/prest-env", {
+            "targets":{
+                "node": "current"
+            }
+        }]
+    ]
+}

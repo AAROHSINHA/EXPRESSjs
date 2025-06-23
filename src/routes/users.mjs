@@ -3,6 +3,9 @@ import { query, validationResult, checkSchema, matchedData } from "express-valid
 import { mockUsers } from "../utils/constants.js";
 import { createUserValidationSchema } from "../utils/validationSchemas.js";
 import { resolveIndexByUserId } from '../utils/middlewares.js';
+import User from "../mongoose/schemas/user.mjs";
+import { getUserByIdHandler } from "../handlers/users.mjs";
+// import { hashPassword } from "../utils/helpers.mjs";
 
 const router = Router(); // Router object
 // a good thing about routers is that it has all important functions such as get post as the normal app
@@ -23,15 +26,7 @@ router.get('/api/users'
       }
       console.log(sessionData);
     })
-
-    /*
-    The query function above just perform the task no matter what
-    They dont throw any error. That error handling we need to do ourselves
-    */
     const result = validationResult(request);
-
-    // this result will be an object. it will have an error property
-    // that errors witll be an array of differenet errors
     const { 
       query: {filter , value}
      } = request;
@@ -41,33 +36,22 @@ router.get('/api/users'
     )
 });
 
-router.post('/api/users', 
-  checkSchema(createUserValidationSchema)
-  ,(request, response) => {
-    const result = validationResult(request);
-
-    // error handler
-    if(!result.isEmpty()){
-      return response.status(400).send({errors: result.array()}); // gives all validation errors in array
-    }
-
+router.post('/api/users' , checkSchema(createUserValidationSchema), async (request, response) => {
+  const result = validationResult(request);
+  if(!result.isEmpty()) return response.status(400).send(result.array()); 
     const data = matchedData(request);
-    console.log(data);
-    const {body} = request;
-    const newUser = {id:mockUsers[mockUsers.length - 1].id + 1, ...body};
-    mockUsers.push(newUser);
-    return response.status(201).send(newUser);
+    data.password = hashPassword(data.password);
+    const newUser = new User(data);
+    try{
+      const savedUser = await newUser.save();
+      return response.status(201).send(savedUser);
+    }catch(err){
+      console.log(err);
+      return response.sendStatus(400);
+    }
 })
 
-router.get('/api/users/:id', resolveIndexByUserId, (request, response) => {
-    const { findUserIndex } = request;
-    const findUser = mockUsers[findUserIndex];
-    if(!findUser){
-        return response.sendStatus(404);
-    }else{
-        return response.send(findUser);
-    }
-});
+router.get('/api/users/:id', resolveIndexByUserId, getUserByIdHandler);
 
 // PUT
 router.put("/api/users/:id", resolveIndexByUserId, (request, response) => {
